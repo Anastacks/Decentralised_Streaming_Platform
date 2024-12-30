@@ -266,3 +266,21 @@
     )
 )
 
+(define-public (add-to-playlist 
+    (playlist-id uint)
+    (content-id uint))
+    (let
+        ((playlist (unwrap! (map-get? UserPlaylists {playlist-id: playlist-id, owner: tx-sender}) ERR-CONTENT-NOT-FOUND))
+         (content (unwrap! (map-get? ContentInfo {content-id: content-id}) ERR-CONTENT-NOT-FOUND)))
+        
+        (map-set UserPlaylists
+            {playlist-id: playlist-id, owner: tx-sender}
+            (merge playlist 
+                {content-ids: (unwrap! (as-max-len? (append (get content-ids playlist) content-id) u100) ERR-NOT-AUTHORIZED)}
+            )
+        )
+        
+        (ok true)
+    )
+)
+
