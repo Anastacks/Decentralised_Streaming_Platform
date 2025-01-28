@@ -132,3 +132,51 @@ Clarinet.test({
     }
 });
 
+
+// Content Rating Tests
+Clarinet.test({
+    name: "Ensure content rating system works correctly",
+    async fn(chain: Chain, accounts: Map<string, Account>)
+    {
+        const creator = accounts.get("wallet_1")!;
+        const user1 = accounts.get("wallet_2")!;
+
+        // First publish content
+        let block = chain.mineBlock([
+            Tx.contractCall("streaming_platform", "publish-content",
+                [
+                    types.uint(1),
+                    types.ascii("Test Content"),
+                    types.ascii("Test Description"),
+                    types.uint(100),
+                    types.bool(false),
+                    types.ascii("Music"),
+                    types.bool(false)
+                ],
+                creator.address
+            )
+        ]);
+
+        // Rate content
+        block = chain.mineBlock([
+            Tx.contractCall("streaming_platform", "rate-content",
+                [
+                    types.uint(1), // content-id
+                    types.uint(5) // 5-star rating
+                ],
+                user1.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, '(ok true)');
+
+        // Try rating again (should fail)
+        block = chain.mineBlock([
+            Tx.contractCall("streaming_platform", "rate-content",
+                [types.uint(1), types.uint(4)],
+                user1.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, '(err u110)'); // ERR-ALREADY-RATED
+    }
+});
+
