@@ -231,4 +231,37 @@ Clarinet.test({
     }
 });
 
+// Creator Level System Tests
+Clarinet.test({
+    name: "Ensure creator leveling system works correctly",
+    async fn(chain: Chain, accounts: Map<string, Account>)
+    {
+        const creator = accounts.get("wallet_1")!;
+
+        // First publish content and get subscribers to meet requirements
+        let block = chain.mineBlock([
+            // Publish multiple content
+            Tx.contractCall("streaming_platform", "publish-content",
+                [types.uint(1), types.ascii("Content 1"), types.ascii("Description"),
+                types.uint(100), types.bool(false), types.ascii("Music"), types.bool(false)],
+                creator.address
+            ),
+            Tx.contractCall("streaming_platform", "publish-content",
+                [types.uint(2), types.ascii("Content 2"), types.ascii("Description"),
+                types.uint(100), types.bool(false), types.ascii("Music"), types.bool(false)],
+                creator.address
+            )
+        ]);
+
+        // Try leveling up (should fail due to insufficient requirements)
+        block = chain.mineBlock([
+            Tx.contractCall("streaming_platform", "level-up-creator",
+                [],
+                creator.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, '(err u100)'); // ERR-NOT-AUTHORIZED
+    }
+});
+
 
