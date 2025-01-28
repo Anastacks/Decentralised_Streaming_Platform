@@ -180,3 +180,55 @@ Clarinet.test({
     }
 });
 
+// Playlist Management Tests
+Clarinet.test({
+    name: "Ensure playlist management works correctly",
+    async fn(chain: Chain, accounts: Map<string, Account>)
+    {
+        const user1 = accounts.get("wallet_1")!;
+        const creator = accounts.get("wallet_2")!;
+
+        // First publish some content
+        let block = chain.mineBlock([
+            Tx.contractCall("streaming_platform", "publish-content",
+                [
+                    types.uint(1),
+                    types.ascii("Test Content"),
+                    types.ascii("Test Description"),
+                    types.uint(100),
+                    types.bool(false),
+                    types.ascii("Music"),
+                    types.bool(false)
+                ],
+                creator.address
+            )
+        ]);
+
+        // Create playlist
+        block = chain.mineBlock([
+            Tx.contractCall("streaming_platform", "create-playlist",
+                [
+                    types.uint(1), // playlist-id
+                    types.ascii("My Playlist"),
+                    types.bool(true) // is-public
+                ],
+                user1.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, '(ok true)');
+
+        // Add content to playlist
+        block = chain.mineBlock([
+            Tx.contractCall("streaming_platform", "add-to-playlist",
+                [
+                    types.uint(1), // playlist-id
+                    types.uint(1) // content-id
+                ],
+                user1.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, '(ok true)');
+    }
+});
+
+
