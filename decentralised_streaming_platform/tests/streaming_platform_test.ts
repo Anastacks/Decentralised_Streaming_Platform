@@ -81,3 +81,54 @@ Clarinet.test({
         assertEquals(block.receipts[0].result, '(err u101)'); // ERR-CONTENT-EXISTS
     }
 });
+
+// Subscription System Tests
+Clarinet.test({
+    name: "Ensure subscription system works correctly",
+    async fn(chain: Chain, accounts: Map<string, Account>)
+    {
+        const creator = accounts.get("wallet_1")!;
+        const subscriber = accounts.get("wallet_2")!;
+
+        // Subscribe to creator
+        let block = chain.mineBlock([
+            Tx.contractCall("streaming_platform", "subscribe-to-creator",
+                [
+                    types.principal(creator.address),
+                    types.uint(30), // 30 days duration
+                    types.ascii("premium") // subscription type
+                ],
+                subscriber.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, '(ok true)');
+
+        // Try subscribing again (should fail)
+        block = chain.mineBlock([
+            Tx.contractCall("streaming_platform", "subscribe-to-creator",
+                [
+                    types.principal(creator.address),
+                    types.uint(30),
+                    types.ascii("premium")
+                ],
+                subscriber.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, '(err u106)'); // ERR-ALREADY-SUBSCRIBED
+
+        // Check subscription status
+        let result = chain.callReadOnlyFn(
+            "streaming_platform",
+            "get-subscription-status",
+            [
+                types.principal(subscriber.address),
+                types.principal(creator.address)
+            ],
+            subscriber.address
+        );
+
+        // Should return active subscription
+        assertEquals(result.result.includes('is-active: true'), true);
+    }
+});
+
