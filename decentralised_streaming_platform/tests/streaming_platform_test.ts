@@ -38,3 +38,46 @@ Clarinet.test({
         assertEquals(block.receipts[0].result, '(ok true)');
     }
 });
+
+// Content Publishing Tests
+Clarinet.test({
+    name: "Ensure content publishing works correctly",
+    async fn(chain: Chain, accounts: Map<string, Account>)
+    {
+        const creator = accounts.get("wallet_1")!;
+
+        // Publish normal content
+        let block = chain.mineBlock([
+            Tx.contractCall("streaming_platform", "publish-content",
+                [
+                    types.uint(1), // content-id
+                    types.ascii("Test Content"), // title
+                    types.ascii("Test Description"), // description
+                    types.uint(100), // price
+                    types.bool(false), // is-nft
+                    types.ascii("Music"), // category
+                    types.bool(false) // is-premium
+                ],
+                creator.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, '(ok true)');
+
+        // Try publishing with same content ID (should fail)
+        block = chain.mineBlock([
+            Tx.contractCall("streaming_platform", "publish-content",
+                [
+                    types.uint(1), // Same content-id
+                    types.ascii("Different Content"),
+                    types.ascii("Different Description"),
+                    types.uint(100),
+                    types.bool(false),
+                    types.ascii("Music"),
+                    types.bool(false)
+                ],
+                creator.address
+            )
+        ]);
+        assertEquals(block.receipts[0].result, '(err u101)'); // ERR-CONTENT-EXISTS
+    }
+});
